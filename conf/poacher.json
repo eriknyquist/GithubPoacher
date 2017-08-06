@@ -1,0 +1,9 @@
+{
+    "working_directory": "work", 
+    "archive_directory": "archive",
+    "skip_empty_repos": true,
+    "max_repo_size_kb": 20000,
+    "repo_handler": "examples/example_handler.py",
+    "github_username": "", 
+    "github_password": ""
+}
