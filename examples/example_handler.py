@@ -30,15 +30,15 @@ def search_file_for_pattern(filename, log):
 
     return ret
 
-def run(repo_path, log):
+def run(repo_path, repo, log):
     ret = False
-    log("In example_handler")
+    log("Searching files in repo %s" % repo.full_name)
 
     # Walk through all files in the repo directory and subdirectories,
     # reading each file we find and searching it for the regex
     for root, subdirs, files in os.walk(repo_path):
         for f in files:
-            if search_file_for_pattern(str(os.path.join(root, f)), log):
+            if search_file_for_pattern(os.path.join(root, f), log):
                 # Found something! make sure to return True, so
                 # that a copy of this repo gets copied to your archive directory
                 ret = True

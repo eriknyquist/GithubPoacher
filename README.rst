@@ -154,18 +154,21 @@ You need to do 2 simple things to use your own handler with poacher:
 
    .. code:: python
 
-       def run(repo_path, log):
-           #
-           # log       : logging function. Call this to print any information
-           #             that you want associated with this repo
+       def run(repo_path, repo, log):
            #
            # repo_path : absolute path to clone of the current repository
            #             on your system
            #
+           # repo      : the Repository object provided by PyGithub. See
+           #             http://pygithub.readthedocs.io/en/latest/github_objects/Repository.html
+           #
+           # log       : logging function. Call this to print any information
+           #             that you want associated with this repo
+           #
            # return    : bool. If True, the clone of this repository will be copied
            #             to your archive directory before continuing.
 
-           log("Latest repository is currently cloned at %s" % repo_path)
+           log("Latest repository %s is currently cloned at %s" % (repo.full_name, repo_path))
            return True
 
    An example handler ``examples/example_handler.py`` is provided, in case
@@ -176,7 +179,9 @@ You need to do 2 simple things to use your own handler with poacher:
 
 Each time a new repository appears on github.com, Poacher will clone it, and
 invoke your handler, passing in the path to the cloned repository as
-``repo_path``. If your handler returns ``True``, then Poacher will make a copy
+``repo_path``.  ``repo`` is a
+`PyGithub Repository object <http://pygithub.readthedocs.io/en/latest/github_objects/Repository.html>`_.
+If your handler returns ``True``, then Poacher will make a copy
 of the repository in the archive directory specified in ``conf/poacher.json``.
 
 If you go look at some clones that have been archived in your archive directory,

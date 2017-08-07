@@ -160,13 +160,13 @@ def archive(archive_dir, repo, handler_logs):
     os.mkdir(path)
     infofile = os.path.join(path, 'info.txt')
     with open(infofile, 'w') as fh:
-        fh.write('URL : %s\n' % repo.html_url)
+        fh.write('URL : %s\n' % repo.html_url.encode('utf-8'))
         fh.write('created at : %s\n' %
             repo.created_at.strftime('%m/%d/%Y %H:%M:%S'))
         if len(handler_logs) > 0:
             fh.write('\nlogs:\n\n')
             for log in handler_logs:
-                fh.write('%s\n' % log)
+                fh.write('%s\n' % log.encode('utf-8'))
 
     try:
         shutil.copytree(archive_dir, path + '/' + os.path.basename(archive_dir))
@@ -176,6 +176,24 @@ def archive(archive_dir, repo, handler_logs):
         return
 
     shutil.rmtree(archive_dir, onerror=del_rw)
+
+def run_handler(current, repo, handler_log):
+    max_retries = 2
+    retries = 0
+
+    while retries < max_retries:
+        try:
+            ret = repo_handler.run(current.decode(), repo, handler_log)
+        except IOError:
+            tlog.log("Error opening cloned file, waiting 1 second and "
+                     "re-trying...")
+            retries = retries + 1
+            time.sleep(1)
+        else:
+            return ret
+
+    tlog.log("Max. retries reach. Unable to process repo " + repo.full_name)
+    return False
 
 def main_loop():
     tlog.init(args.verbose)
@@ -206,6 +224,7 @@ def main_loop():
 
         numnew = len(new)
         if numnew == 0:
+            tlog.log("Waiting for new repos...")
             continue
 
         newest = marker.newest_id = new[-1].id
@@ -215,30 +234,27 @@ def main_loop():
         for repo in new:
             marker.current_id = repo.id
 
-            tlog.log('%s' % repo.html_url)
-
             try:
                 size = repo.size
             except:
-                tlog.log('size unknown, skipping...')
+                # Size unknown, have to skip...
                 continue
 
             try:
                 mbsize = float(size) / 1000.0
             except:
-                tlog.log('size unknown, skipping...')
+                # Size unknown, have to skip...
                 continue
 
             if size > conf['max_repo_size_kb']:
-                tlog.log('%.f2MB: Repo is too big, skipping...'
+                tlog.log('%.2fMB: Repo is too big, skipping...'
                          % mbsize)
                 continue
 
             elif float(size) == 0.0000 and conf['skip_empty_repos']:
-                tlog.log("Repo %s is empty, skipping..." % repo.name)
                 continue
 
-            tlog.log('size: %.2fMB' % mbsize)
+            tlog.log('%s (%.2fMB)' % (repo.html_url, mbsize))
             current = conf['working_directory'] + '/' + repo.name
 
             tlog.log('Cloning %s' % repo.name)
@@ -248,6 +264,9 @@ def main_loop():
                 tlog.log('Unable to clone: %s: skipping...' % e)
                 continue
 
+            # Sleep for 100ms to ensure files have finished downloading
+            time.sleep(0.1)
+
             handler_logs = []
 
             def handler_log(msg):
@@ -255,7 +274,7 @@ def main_loop():
                 tlog.log(msg, desc=module_name)
 
             tlog.log('Running %s' % module_name)
-            if repo_handler.run(current, handler_log):
+            if run_handler(current.decode(), repo, handler_log):
                 archive(current, repo, handler_logs)
             else:
                 shutil.rmtree(current, onerror=del_rw)
