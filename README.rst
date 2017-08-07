@@ -148,3 +148,48 @@ repository, specifically:
 * The date and time the repository was created (UTC)
 * Anything that your handler logged using the log() function, when it was
   invoked for this repository
+
+Poacher configuration
+---------------------
+
+A description of configurable parameters in ``conf/poacher.json`` follows
+
+  | **Name**: ``working_directory``
+  | **Type**: string
+  | **Description**: path to the directory where poacher will temporarily clone repositories
+
+|
+
+  | **Name**: ``archive_directory``
+  | **Type**: string
+  | **Description**: path to the directory where poacher will put archived repositories
+
+|
+
+  | **Name**: ``skip_empty_repos``
+  | **Type**: bool
+  | **Description**: if true, poacher will not download repositories with a size of 0
+
+|
+
+  | **Name**: ``max_repo_size_kb``
+  | **Type**: integer
+  | **Description**: size limit in kilobytes. Poacher will not download repos larger than this
+
+|
+
+  | **Name**: ``repo_handler``
+  | **Type**: string
+  | **Description**: path to the .py file containing the handler that should be called when a new repository is created
+
+|
+
+  | **Name**: ``github_username``
+  | **Type**: string
+  | **Description**: username for the Github account that will be used for authentication
+
+|
+
+  | **Name**: ``github_password``
+  | **Type**: string
+  | **Description**: password for the Github account that will be used for authentication
