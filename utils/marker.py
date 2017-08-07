@@ -3,7 +3,7 @@ import time
 import tlog
 import os
 
-DEFAULT_LASTID =        10947291
+DEFAULT_LASTID =        99525181
 DEFAULT_AVG =           42
 MARKERFILE =            'conf/marker.json'
 REPOCOUNT_REPOS =       0

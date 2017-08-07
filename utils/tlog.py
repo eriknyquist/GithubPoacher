@@ -6,16 +6,14 @@ DESCPAD =             10
 DEFAULT_DESC =        'poacher'
 TS_TEMPLATE =         "%m-%d-%Y %H:%M:%S.%f"
 
-start =               0
+start =               time.time()
 verbose =             True
 
 def timestamp():
     return datetime.datetime.now().strftime(TS_TEMPLATE)[:-3]
 
 def init(arg_verbose):
-    global start
     global verbose
-    start = time.time()
     verbose = arg_verbose
 
 def secs_to_walltime(delta, compact=True):
@@ -37,19 +35,19 @@ def secs_to_walltime(delta, compact=True):
 
     return ret
 
+def write(msg, desc=DEFAULT_DESC):
+    splitdesc = os.path.splitext(desc)[0]
+    ts = timestamp()
+    ut = secs_to_walltime(time.time() - start)
+
+    splitmsg = msg.strip().split('\n')
+
+    for m in splitmsg:
+        line = '[%s] [%s] %s:> %s' % (ts, ut, splitdesc, m)
+        print line
 
 def log(msg, desc=DEFAULT_DESC):
     if not verbose:
         return
 
-    global start
-
-    splitdesc = os.path.splitext(desc)[0]
-    ts = timestamp()
-    ut = secs_to_walltime(time.time() - start)
-
-    splitmsg = msg.split('\n')
-
-    for m in splitmsg:
-        line = '[%s] [%s] %s:> %s' % (ts, ut, splitdesc, m)
-        print line
+    write(msg, desc)

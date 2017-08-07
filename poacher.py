@@ -10,6 +10,15 @@ from git import GitCommandError
 from optparse import OptionParser
 from github import Github
 
+banner = """
+::::::::::.     ...       :::.       .,-:::::    ::   .:  .,::::::  :::::::..
+ `;;;```.;;; .;;;;;;;.    ;;`;;    ,;;;'````'   ,;;   ;;, ;;;;''''  ;;;;``;;;;
+  `]]nnn]]' ,[[     \[[, ,[[ '[[,  [[[         ,[[[,,,[[[  [[cccc    [[[,/[[['
+   $$$''    $$$,     $$$c$$$cc$$$c $$$         '$$$'''$$$  $$''''    $$$$$$c
+   888o     '888,_ _,88P 888   888,`88bo,__,o,  888   '88o 888oo,__  888b '88bo,
+   YMMMb      'YMMMMMP'  YMM   ''`   'YUMMMMMP' MMM    YMM '''YUMMM MMMM   'W'
+"""
+
 sys.path.append('utils')
 import marker
 import tlog
@@ -56,6 +65,9 @@ except Exception as e:
 
 if not check_main_conf(conf):
     sys.exit(1)
+
+if args.verbose:
+    print banner
 
 # Import handler module specified in main conf. file
 module_dir, module_name = parse_user_handler(conf['repo_handler'])
@@ -169,6 +181,7 @@ def main_loop():
     tlog.init(args.verbose)
     G = authenticate()
 
+    tlog.log('Using handler %s' % module_name)
     guess = 0
     if marker.averages_sum > 0 and marker.numsessions > 0:
         guess = predict_growth(marker.timestamp, marker.averages_sum,
@@ -179,8 +192,7 @@ def main_loop():
     marker.starting_id = newest
     marker.starttime = time.time()
 
-    num = newest - marker.repo_id
-    tlog.log('\n%d new repos since last check' % num)
+    tlog.log('Latest repo ID is %d' % newest)
 
     if not os.path.isdir(conf['working_directory']):
         os.mkdir(conf['working_directory'])
@@ -197,7 +209,6 @@ def main_loop():
             continue
 
         newest = marker.newest_id = new[-1].id
-        #tlog.log('%d new repos found.' % numnew)
         marker.numrepos += numnew
         marker.current_timestamp = time.time()
 
@@ -211,7 +222,7 @@ def main_loop():
             except:
                 tlog.log('size unknown, skipping...')
                 continue
-            
+
             try:
                 mbsize = float(size) / 1000.0
             except:
@@ -274,7 +285,7 @@ def main():
     try:
         main_loop()
     except KeyboardInterrupt:
-        tlog.log('Finishing...')
+        tlog.write('Finishing...')
         time.sleep(2)
         finish()
 
