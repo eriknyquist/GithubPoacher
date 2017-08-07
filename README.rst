@@ -56,20 +56,28 @@ Installation is easy. Poacher works on Linux and Windows, as long as you have
 the following packages installed:
 
 * `Python 2.7.x <https://www.python.org/downloads/release/python-2713>`_
-* `Git <https://git-scm.com>`_
+* `Git <https://git-scm.com>`_ (to clone Github repositories)
 
   * **Linux installation**: From a terminal, type ``apt-get install git``
     (Debian/Ubuntu) or ``yum install git`` (Fedora/RedHat)
   * **Windows installation**: download and install
     `Git for windows <https://git-scm.com/download/win>`_
 
-* `PyGithub <https://github.com/PyGithub/PyGithub>`_
+* `PyGithub <https://github.com/PyGithub/PyGithub>`_ (to interact with Github
+  through your Github account)
 
-  * **Linux installation:** From a terminal, type ``pip install PyGithub``
-  * **Windows installation:** From a terminal, type
+  * **Linux installation**: From a terminal, type ``pip install PyGithub``
+  * **Windows installation**: From the command prompt, type
     ``C:\Python27\Scripts\pip.exe install PyGithub``
 
-Once you have installed the 3 items above, you can clone Poacher and test it.
+* `GitPython <https://github.com/gitpython-developers/GitPython>`_ (to interact
+  with the git installation on your local machine)
+
+  * **Linux installation**: From a terminal, type ``pip install GitPython``
+  * **Windows installation**: From the command prompt, type
+    ``C:\Python27\Scripts\pip.exe pip install GitPython``
+
+Once you have installed the 4 items above, you can clone Poacher and test it.
 
 ::
 
