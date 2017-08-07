@@ -9,6 +9,20 @@ created repostories, clones them, and allows you to do something with the cloned
 files. Effectively, this allows you to write a handler/script to be executed on
 any newly-created Github repositories, as soon as they appear on github.com.
 
+Why?
+----
+
+For fun. Apparently (so I've heard), some people push sensitive information to
+public Github repositories by accident (some IDEs even have an integrated
+'Push to new Github repo' button). Poacher is a useful tool if you want to
+find out for yourself whether there's any truth in that.
+
+|
+
+Unfortunately, writing a program that can detect 'sensitive information' is
+pretty damn tricky, so I've left that for you and just pulled together the easy
+parts :)
+
 How does it work?
 -----------------
 
