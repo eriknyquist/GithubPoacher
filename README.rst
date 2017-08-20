@@ -112,37 +112,27 @@ everything is working:
 
 ::
 
-     $> python poacher.py -v
+    $> python poacher.py -v
 
-     ::::::::::.     ...       :::.       .,-:::::    ::   .:  .,::::::  :::::::..
-      `;;;```.;;; .;;;;;;;.    ;;`;;    ,;;;'````'   ,;;   ;;, ;;;;''''  ;;;;``;;;;
-       `]]nnn]]' ,[[     \[[, ,[[ '[[,  [[[         ,[[[,,,[[[  [[cccc    [[[,/[[['
-        $$$''    $$$,     $$$c$$$cc$$$c $$$         '$$$'''$$$  $$''''    $$$$$$c
-        888o     '888,_ _,88P 888   888,`88bo,__,o,  888   '88o 888oo,__  888b '88bo,
-        YMMMb      'YMMMMMP'  YMM   ''`   'YUMMMMMP' MMM    YMM '''YUMMM MMMM   'W'
+    ::::::::::.     ...       :::.       .,-:::::    ::   .:  .,::::::  :::::::..
+     `;;;```.;;; .;;;;;;;.    ;;`;;    ,;;;'````'   ,;;   ;;, ;;;;''''  ;;;;``;;;;
+      `]]nnn]]' ,[[     \[[, ,[[ '[[,  [[[         ,[[[,,,[[[  [[cccc    [[[,/[[['
+       $$$''    $$$,     $$$c$$$cc$$$c $$$         '$$$'''$$$  $$''''    $$$$$$c
+       888o     '888,_ _,88P 888   888,`88bo,__,o,  888   '88o 888oo,__  888b '88bo,
+       YMMMb      'YMMMMMP'  YMM   ''`   'YUMMMMMP' MMM    YMM '''YUMMM MMMM   'W'
 
-     [08-06-2017 18:43:53.588] [0:00:00] poacher:> Marker file conf/marker.json doesn't exist, using defaults
-     [08-06-2017 18:43:53.588] [0:00:00] poacher:> Using handler example_handler
-     [08-06-2017 18:43:53.588] [0:00:00] poacher:> Starting binary search for latest repo ID, last ID was 99525181
-     [08-06-2017 18:43:53.588] [0:00:00] poacher:> trying ID 99525181
-     [08-06-2017 18:43:54.530] [0:00:00] poacher:> trying ID 99525197
-     [08-06-2017 18:43:55.468] [0:00:01] poacher:> trying ID 99525229
-     [08-06-2017 18:43:56.467] [0:00:02] poacher:> trying ID 99525293
-     [08-06-2017 18:43:57.426] [0:00:03] poacher:> trying ID 99525421
-     [08-06-2017 18:43:58.389] [0:00:04] poacher:> trying ID 99525677
-     [08-06-2017 18:43:58.750] [0:00:05] poacher:> ID 99525677 not yet used
-     [08-06-2017 18:43:58.750] [0:00:05] poacher:> Beginning search between 99525181 and 99525677
-     [08-06-2017 18:43:58.750] [0:00:05] poacher:> search area size: 496
-     [08-06-2017 18:43:59.904] [0:00:06] poacher:> search area size: 248
-     [08-06-2017 18:44:00.725] [0:00:07] poacher:> search area size: 124
-     [08-06-2017 18:44:01.147] [0:00:07] poacher:> search area size: 62
-     [08-06-2017 18:44:01.671] [0:00:08] poacher:> search area size: 31
-     [08-06-2017 18:44:02.174] [0:00:08] poacher:> search area size: 15
-     [08-06-2017 18:44:02.669] [0:00:09] poacher:> search area size: 8
-     [08-06-2017 18:44:03.198] [0:00:09] poacher:> search area size: 4
-     [08-06-2017 18:44:03.653] [0:00:10] poacher:> search area size: 2
-     [08-06-2017 18:44:04.034] [0:00:10] poacher:> Latest repo ID is 99525598
-     ...
+    [08-20-2017 16:46:02.516] [0:00:00] poacher:> Marker file conf/marker.json doesn't exist, using defaults
+    [08-20-2017 16:46:02.516] [0:00:00] poacher:> Monitor Mode (no active handler)
+    [08-20-2017 16:46:02.516] [0:00:00] poacher:> Starting binary search for latest repo ID, last ID was 99525181
+    [08-20-2017 16:46:02.516] [0:00:00] poacher:> trying ID 99525181
+    [08-20-2017 16:46:03.524] [0:00:01] poacher:> trying ID 99525197
+    [08-20-2017 16:46:04.301] [0:00:01] poacher:> trying ID 99525229
+    [08-20-2017 16:46:05.333] [0:00:02] poacher:> trying ID 99525293
+    [08-20-2017 16:46:06.327] [0:00:03] poacher:> trying ID 99525421
+    [08-20-2017 16:46:07.330] [0:00:04] poacher:> trying ID 99525677
+    [08-20-2017 16:46:08.173] [0:00:05] poacher:> trying ID 99526189
+    [08-20-2017 16:46:09.200] [0:00:06] poacher:> trying ID 99527213
+    ...
 
 If you see poacher start to search for the latest repository ID, like in the
 log output shown above, then you're good to go.
