@@ -31,6 +31,13 @@ def search_file_for_pattern(filename, log):
     return ret
 
 def run(repo_path, repo, log):
+    # repo_path will be set to None if there is no local clone available (i.e.
+    # if 'clone' is set to false in poacher.json). Return value doesn't matter
+    # in this case, since poacher ignores the return value of a handler when
+    # 'clone' is set to false
+    if repo_path == None:
+        return False
+
     ret = False
     log("Searching files in repo %s" % repo.full_name)
 

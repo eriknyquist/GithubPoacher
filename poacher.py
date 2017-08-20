@@ -30,17 +30,17 @@ args = parser.parse_args()
 MAIN_CONF = 'conf/poacher.json'
 conf = {
     'skip_empty_repos' : True,
-    'max_repo_size_kb' : 20000
+    'max_repo_size_kb' : 20000,
+    'clone'            : False,
+    'monitor_only'     : True,
 }
 
 DEFAULT_STEP =          16
-DUMP =                  'vulns.txt'
 UPPER_INIT =            64
-IGNORE_DIRS =           ['.git']
 
 CONF_REQUIRED = [
     'archive_directory', 'working_directory', 'github_username',
-    'github_password', 'repo_handler'
+    'github_password'
 ]
 
 def check_main_conf(conf):
@@ -56,6 +56,28 @@ def parse_user_handler(abspath):
     mod_dir, mod = os.path.split(abspath)
     return mod_dir, os.path.splitext(mod)[0]
 
+def import_user_handler(conf):
+    if conf['monitor_only']:
+        conf['clone'] = False
+        return None, None
+
+    # Import handler module from main conf, if defined...
+    repo_handler = None
+    module_name = None
+
+    if 'repo_handler' in conf and conf['repo_handler'] != "":
+        module_dir, module_name = parse_user_handler(conf['repo_handler'])
+        repo_handler_logger = lambda msg: tlog.log(msg, desc=module_name)
+
+        sys.path.append(module_dir)
+
+        try:
+            repo_handler = __import__(module_name)
+        except Exception as e:
+            tlog.log("Error importing handler %s: %s" % (module_name, e))
+
+    return module_name, repo_handler
+
 try:
     with open(MAIN_CONF, 'r') as fh:
         conf.update(json.load(fh))
@@ -69,12 +91,7 @@ if not check_main_conf(conf):
 if args.verbose:
     print banner
 
-# Import handler module specified in main conf. file
-module_dir, module_name = parse_user_handler(conf['repo_handler'])
-sys.path.append(module_dir)
-repo_handler = __import__(module_name)
-
-repo_handler_logger = lambda msg: tlog.log(msg, desc=module_name)
+module_name, repo_handler = import_user_handler(conf)
 marker = marker.Marker()
 
 def authenticate():
@@ -183,10 +200,9 @@ def run_handler(current, repo, handler_log):
 
     while retries < max_retries:
         try:
-            ret = repo_handler.run(current.decode(), repo, handler_log)
-        except IOError:
-            tlog.log("Error opening cloned file, waiting 1 second and "
-                     "re-trying...")
+            ret = repo_handler.run(current, repo, handler_log)
+        except Exception as e:
+            tlog.log("Error in handler: %s" % e)
             retries = retries + 1
             time.sleep(1)
         else:
@@ -195,11 +211,51 @@ def run_handler(current, repo, handler_log):
     tlog.log("Max. retries reach. Unable to process repo " + repo.full_name)
     return False
 
+def get_repo_size(repo):
+    try:
+        size = repo.size
+    except:
+        tlog.log("Repo %s has unknown size" % repo.name)
+        return 0, 0
+
+    mbsize = size
+    try:
+        mbsize = float(size) / 1000.0
+    except:
+        tlog.log("Repo %s has unknown size" % repo.name)
+        return 0, 0
+
+    return size, mbsize
+
+def clone_repo(repo, size, mbsize, conf):
+    if not conf['clone']:
+        return None
+
+    if size > conf['max_repo_size_kb']:
+        tlog.log('%.2fMB: Repo is too big, will not clone' % mbsize)
+        return None
+
+    current = conf['working_directory'] + '/' + repo.name
+    clone_path = current.decode()
+
+    tlog.log('Cloning %s' % repo.name)
+    try:
+        Repo.clone_from(repo.html_url, current)
+    except GitCommandError as e:
+        tlog.log('Unable to clone: %s: skipping...' % e)
+        return None
+
+    # Sleep for 100ms to ensure files have finished downloading
+    time.sleep(0.1)
+    return clone_path
+
 def main_loop():
     tlog.init(args.verbose)
     G = authenticate()
 
-    tlog.log('Using handler %s' % module_name)
+    if repo_handler != None:
+        tlog.log('Using handler %s' % module_name)
+
     guess = 0
     if marker.averages_sum > 0 and marker.numsessions > 0:
         guess = predict_growth(marker.timestamp, marker.averages_sum,
@@ -224,7 +280,6 @@ def main_loop():
 
         numnew = len(new)
         if numnew == 0:
-            tlog.log("Waiting for new repos...")
             continue
 
         newest = marker.newest_id = new[-1].id
@@ -234,50 +289,26 @@ def main_loop():
         for repo in new:
             marker.current_id = repo.id
 
-            try:
-                size = repo.size
-            except:
-                # Size unknown, have to skip...
+            if float(repo.size) == 0.0000 and conf['skip_empty_repos']:
                 continue
 
-            try:
-                mbsize = float(size) / 1000.0
-            except:
-                # Size unknown, have to skip...
-                continue
-
-            if size > conf['max_repo_size_kb']:
-                tlog.log('%.2fMB: Repo is too big, skipping...'
-                         % mbsize)
-                continue
-
-            elif float(size) == 0.0000 and conf['skip_empty_repos']:
-                continue
-
+            size, mbsize = get_repo_size(repo)
             tlog.log('%s (%.2fMB)' % (repo.html_url, mbsize))
-            current = conf['working_directory'] + '/' + repo.name
 
-            tlog.log('Cloning %s' % repo.name)
-            try:
-                Repo.clone_from(repo.html_url, current)
-            except GitCommandError as e:
-                tlog.log('Unable to clone: %s: skipping...' % e)
+            if repo_handler == None:
                 continue
 
-            # Sleep for 100ms to ensure files have finished downloading
-            time.sleep(0.1)
-
+            clone_path = clone_repo(repo, size, mbsize, conf)
             handler_logs = []
 
             def handler_log(msg):
                 handler_logs.append(msg)
                 tlog.log(msg, desc=module_name)
 
-            tlog.log('Running %s' % module_name)
-            if run_handler(current.decode(), repo, handler_log):
-                archive(current, repo, handler_logs)
-            else:
-                shutil.rmtree(current, onerror=del_rw)
+            if run_handler(clone_path, repo, handler_log) and conf["clone"]:
+                archive(clone_path, repo, handler_logs)
+            elif conf["clone"] and clone_path != None:
+                shutil.rmtree(clone_path, onerror=del_rw)
 
 def get_avg_per_min(delta, num):
     per_sec = float(num) / float(delta)
@@ -301,6 +332,11 @@ def finish():
 
 
 def main():
+    if ('repo_handler' not in conf or conf['repo_handler'] == ""
+            or repo_handler == None):
+        tlog.log("Monitor Mode (no active handler. keeping track of repository "
+                 "creation rate, nothing more)")
+
     try:
         main_loop()
     except KeyboardInterrupt:

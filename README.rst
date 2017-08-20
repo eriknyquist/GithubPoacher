@@ -94,6 +94,9 @@ like this:
         "archive_directory": "archive",
         "skip_empty_repos": true,
         "max_repo_size_kb": 20000,
+        "clone": true,
+        "monitor_only": true,
+
         "repo_handler": "examples/example_handler.py",
         "github_username": "", 
         "github_password": ""
@@ -147,7 +150,7 @@ log output shown above, then you're good to go.
 Using Poacher
 #############
 
-You need to do 2 simple things to use your own handler with poacher:
+You need to do 3 simple things to use your own handler with poacher:
 
 1. Write a handler. Your handler should be a .py file that defines a ``run()``
    method, like this:
@@ -177,6 +180,16 @@ You need to do 2 simple things to use your own handler with poacher:
 2. Open ``conf/poacher.json``, and change the value of ``repo_handler`` so it
    contains the path to the file containing your handler.
 
+3. Also in ``conf/poacher.json``, make sure that ``monitor_only`` is set to
+   ``false``, otherwise your handler will not run.
+
+That's it. Now you can run poacher, and verify that your handler is loaded by
+looking for message like this in the log output:
+
+::
+
+     [08-06-2017 18:43:53.588] [0:00:00] poacher:> Using handler example_handler
+
 Each time a new repository appears on github.com, Poacher will clone it, and
 invoke your handler, passing in the path to the cloned repository as
 ``repo_path``.  ``repo`` is a
@@ -201,40 +214,68 @@ A description of configurable parameters in ``conf/poacher.json`` follows
 
   | **Name**: ``working_directory``
   | **Type**: string
-  | **Description**: path to the directory where poacher will temporarily clone repositories
+  | **Description**: path to the directory where poacher will temporarily clone
+  | repositories
 
 |
 
   | **Name**: ``archive_directory``
   | **Type**: string
-  | **Description**: path to the directory where poacher will put archived repositories
+  | **Description**: path to the directory where poacher will put archived 
+  | repositories
 
 |
 
   | **Name**: ``skip_empty_repos``
   | **Type**: bool
-  | **Description**: if true, poacher will not download repositories with a size of 0
+  | **Description**: if true, poacher will not download repositories with a
+  | size of 0
 
 |
 
   | **Name**: ``max_repo_size_kb``
   | **Type**: integer
-  | **Description**: size limit in kilobytes. Poacher will not download repos larger than this
+  | **Description**: size limit in kilobytes. Poacher will not download repos
+  | larger than this, and pass 'None' to your handler in place of the clone path
+
+|
+
+  | **Name**: ``monitor_only``
+  | **Type**: bool
+  | **Description**: if true, poacher will not download any repositories, or
+  | run any handlers, effectively just keeping track of the repo creation rate.
+  | This setting overrides the values of ``clone`` and ``repo_handler``: you'll
+  | need to make sure the ``monitor_only`` is set to ``false`` if you want to
+  | set ``clone`` or ``repo_handler``.
+
+|
+
+  | **Name**: ``clone``
+  | **Type**: bool
+  | **Description**: if true, each new repository will be cloned, and the path
+  | to the cloned repository will be passed to your handler, if defined.
+  | Otherwise (set to false), repositories will not be cloned and your handler
+  | will be passed 'None' in place of the clone path.
 
 |
 
   | **Name**: ``repo_handler``
   | **Type**: string
-  | **Description**: path to the .py file containing the handler that should be called when a new repository is created
+  | **Description**: path to the .py file containing the handler that should be
+  | called when a new repository is created. If ``repo_handler`` is not defined,
+  | or if an invalid file is provided, then poacher will automatically switch
+  | to monitor mode (``monitor_only = true``)
 
 |
 
   | **Name**: ``github_username``
   | **Type**: string
-  | **Description**: username for the Github account that will be used for authentication
+  | **Description**: username for the Github account that will be used for
+  | authentication
 
 |
 
   | **Name**: ``github_password``
   | **Type**: string
-  | **Description**: password for the Github account that will be used for authentication
+  | **Description**: password for the Github account that will be used for
+  | authentication
