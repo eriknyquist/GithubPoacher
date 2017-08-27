@@ -1,19 +1,19 @@
-import datetime
-import time
-import os
+from datetime import datetime
+from time import time
+from os import path as os_path
 
 DESCPAD =             10
 DEFAULT_DESC =        'poacher'
 TS_TEMPLATE =         "%m-%d-%Y %H:%M:%S.%f"
 
-start =               time.time()
+start =               time()
 verbose =             True
 
 def timestamp(time=None):
     if time == None:
-        timeval = datetime.datetime.now()
+        timeval = datetime.now()
     else:
-        timeval = datetime.datetime.fromtimestamp(time)
+        timeval = datetime.fromtimestamp(time)
 
     return timeval.strftime(TS_TEMPLATE)[:-3]
 
@@ -41,9 +41,9 @@ def secs_to_walltime(delta, compact=True):
     return ret
 
 def write(msg, desc=DEFAULT_DESC):
-    splitdesc = os.path.splitext(desc)[0]
+    splitdesc = os_path.splitext(desc)[0]
     ts = timestamp()
-    ut = secs_to_walltime(time.time() - start)
+    ut = secs_to_walltime(time() - start)
 
     splitmsg = msg.strip().split('\n')
 

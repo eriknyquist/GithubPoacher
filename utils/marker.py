@@ -1,7 +1,10 @@
-import json
-import time
+from json import load as json_load
+from json import dump as json_dump
+
+from os.path import exists as path_exists
+from time import time
 import tlog
-import os
+
 
 DEFAULT_LASTID =        99525181
 DEFAULT_AVG =           42
@@ -20,11 +23,11 @@ class Marker():
         self.newest_id = 0
         self.starttime = 0
         self.repo_id = DEFAULT_LASTID
-        self.timestamp = time.time()
+        self.timestamp = time()
         self.averages_sum = 0
         self.numsessions = 0
 
-        if not os.path.exists(MARKERFILE):
+        if not path_exists(MARKERFILE):
             tlog.log("Marker file %s doesn't exist, using defaults" %
                 MARKERFILE)
             return
@@ -34,7 +37,7 @@ class Marker():
     def __from_json(self, json_file):
         try:
             with open(json_file, 'r') as fh:
-                data = json.load(fh)
+                data = json_load(fh)
         except Exception as e:
             tlog.log('Error reading file %s: %s' % (json_file, e))
             return
@@ -50,13 +53,13 @@ class Marker():
     def __to_json(self, json_file, avg):
         data = {}
         data['repo_id'] = self.current_id
-        data['timestamp'] = time.time()
+        data['timestamp'] = time()
         data['averages_sum'] = self.averages_sum + avg
         data['num_sessions'] = self.numsessions + 1
 
         try:
             with open(json_file, 'w') as fh:
-                data = json.dump(data, fh, indent=4)
+                data = json_dump(data, fh, indent=4)
         except Exception as e:
             tlog.log('Error writing file %s: %s' % (json_file, e))
             return

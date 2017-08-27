@@ -1,11 +1,17 @@
-import sys
-import os
-import stat
-import shutil
-import json
-import time
-import argparse
-import getpass
+from sys import path as sys_path
+from sys import exit as sys_exit
+
+from os import path as os_path
+from os import chmod as os_chmod
+from os import remove as os_remove
+from os import mkdir as os_mkdir
+
+from stat import S_IWRITE
+from shutil import (rmtree, copytree)
+from time import (time, sleep)
+from json import load as json_load
+from argparse import ArgumentParser
+from getpass import getpass
 
 from git import Repo
 from git import GitCommandError
@@ -21,11 +27,11 @@ banner = """
    YMMMb      'YMMMMMP'  YMM   ''`   'YUMMMMMP' MMM    YMM '''YUMMM MMMM   'W'
 """
 
-sys.path.append('utils')
+sys_path.append('utils')
 import marker
 import tlog
 
-parser = argparse.ArgumentParser()
+parser = ArgumentParser()
 parser.add_argument('-v', '--verbose', action='store_true', dest='verbose')
 args = parser.parse_args()
 
@@ -65,7 +71,7 @@ def get_conf_from_user(conf, conf_item, prompt, echo=True):
             if echo:
                 conf[conf_item] = raw_input(prompt.encode())
             else:
-                conf[conf_item] = getpass.getpass(prompt.encode())
+                conf[conf_item] = getpass(prompt.encode())
 
     return ret
 
@@ -87,8 +93,8 @@ def check_main_conf(conf):
     return ret
 
 def parse_user_handler(abspath):
-    mod_dir, mod = os.path.split(abspath)
-    return mod_dir, os.path.splitext(mod)[0]
+    mod_dir, mod = os_path.split(abspath)
+    return mod_dir, os_path.splitext(mod)[0]
 
 def import_user_handler(conf):
     if conf[CONF_MONITOR]:
@@ -102,7 +108,7 @@ def import_user_handler(conf):
     module_dir, module_name = parse_user_handler(conf[CONF_HANDLER])
     repo_handler_logger = lambda msg: tlog.log(msg, desc=module_name)
 
-    sys.path.append(module_dir)
+    sys_path.append(module_dir)
 
     try:
         repo_handler = __import__(module_name)
@@ -132,7 +138,7 @@ def repo_exists(githubObj, id):
 
 def predict_growth(ts, sumavg, numsessions):
     avg = float(sumavg) / float(numsessions)
-    delta_s = time.time() - ts
+    delta_s = time() - ts
     delta_m = float(delta_s) / 60.0
     return int(delta_m * avg)
 
@@ -169,30 +175,30 @@ def bsearch(githubObj, lower, growth_prediction):
     return lower
 
 def del_rw(action, name, exc):
-    if os.path.exists(name):
-        os.chmod(name, stat.S_IWRITE)
+    if os_path.exists(name):
+        os_chmod(name, S_IWRITE)
 
         desc = 'file or directory'
         try:
-            if os.path.isdir(name):
+            if os_path.isdir(name):
                 desc = 'directory'
-                shutil.rmtree(name)
+                rmtree(name)
             else:
                 desc = 'file'
-                os.remove(name)
+                os_remove(name)
         except:
             tlog.log("Failed to remove %s %s, abandoning..." %
                      (desc, name))
 
 def archive(archive_dir, repo, handler_logs):
-    if not os.path.isdir(conf[CONF_ARCHDIR]):
-        os.mkdir(conf[CONF_ARCHDIR])
+    if not os_path.isdir(conf[CONF_ARCHDIR]):
+        os_mkdir(conf[CONF_ARCHDIR])
 
-    path = os.path.join(conf[CONF_ARCHDIR],
-        os.path.basename(archive_dir) +  '_' + str(repo.id))
+    path = os_path.join(conf[CONF_ARCHDIR],
+        os_path.basename(archive_dir) +  '_' + str(repo.id))
 
-    os.mkdir(path)
-    infofile = os.path.join(path, 'info.txt')
+    os_mkdir(path)
+    infofile = os_path.join(path, 'info.txt')
     with open(infofile, 'w') as fh:
         fh.write('URL : %s\n' % repo.html_url.encode('utf-8'))
         fh.write('created at : %s\n' %
@@ -203,13 +209,13 @@ def archive(archive_dir, repo, handler_logs):
                 fh.write('%s\n' % log.encode('utf-8'))
 
     try:
-        shutil.copytree(archive_dir, path + '/' + os.path.basename(archive_dir))
+        copytree(archive_dir, path + '/' + os_path.basename(archive_dir))
     except:
         tlog.write(("Failed to copy repo files while archiving: leaving "
                  "in %s") % conf[CONF_WORKDIR])
         return
 
-    shutil.rmtree(archive_dir, onerror=del_rw)
+    rmtree(archive_dir, onerror=del_rw)
 
 def run_handler(current, repo, repo_handler, handler_log):
     max_retries = 2
@@ -221,7 +227,7 @@ def run_handler(current, repo, repo_handler, handler_log):
         except Exception as e:
             tlog.write("Error in handler: %s" % e)
             retries = retries + 1
-            time.sleep(1)
+            sleep(1)
         else:
             return ret
 
@@ -263,7 +269,7 @@ def clone_repo(repo, size, mbsize, conf):
         return None
 
     # Sleep for 100ms to ensure files have finished downloading
-    time.sleep(0.1)
+    sleep(0.1)
     return clone_path
 
 def main_loop(conf, mark, repo_handler, module_name):
@@ -288,21 +294,21 @@ def main_loop(conf, mark, repo_handler, module_name):
     newest = bsearch(G, mark.repo_id, guess)
     mark.current_id = newest
     mark.starting_id = newest
-    mark.starttime = time.time()
+    mark.starttime = time()
 
     tlog.log('Latest repo ID is %d' % newest)
 
-    if not os.path.isdir(conf[CONF_WORKDIR]):
-        os.mkdir(conf[CONF_WORKDIR])
+    if not os_path.isdir(conf[CONF_WORKDIR]):
+        os_mkdir(conf[CONF_WORKDIR])
 
     while True:
-        time.sleep(conf[CONF_POLL_DELAY])
+        sleep(conf[CONF_POLL_DELAY])
 
         try:
             new = get_new(G, newest)
         except Exception as e:
             tlog.write("Error getting new repos from Github: " + str(e))
-            sys.exit(1)
+            sys_exit(1)
 
         numnew = len(new)
         if numnew == 0:
@@ -310,15 +316,15 @@ def main_loop(conf, mark, repo_handler, module_name):
 
         newest = mark.newest_id = new[-1].id
         mark.numrepos += numnew
-        mark.current_timestamp = time.time()
+        mark.current_timestamp = time()
 
         for repo in new:
             mark.current_id = repo.id
 
-            if float(repo.size) == 0.0000 and conf[CONF_SKIP_EMPTY]:
+            size, mbsize = get_repo_size(repo)
+            if size == 0.000 and conf[CONF_SKIP_EMPTY]:
                 continue
 
-            size, mbsize = get_repo_size(repo)
             tlog.log('%s (%.2fMB)' % (repo.html_url, mbsize))
 
             if repo_handler == None:
@@ -335,7 +341,7 @@ def main_loop(conf, mark, repo_handler, module_name):
                     and conf[CONF_CLONE]):
                 archive(clone_path, repo, handler_logs)
             elif conf[CONF_CLONE] and clone_path != None:
-                shutil.rmtree(clone_path, onerror=del_rw)
+                rmtree(clone_path, onerror=del_rw)
 
 def get_avg_per_min(delta, num):
     per_sec = float(num) / float(delta)
@@ -355,19 +361,19 @@ def finish(mark):
     tlog.log('%d new repos (%d public) in %s.' % (nall, npub, deltastr))
     tlog.log('Session average: %d new repos per minute' % avg)
     tlog.log('Running average: %d new repos per minute.' % r_avg)
-    sys.exit(0)
+    sys_exit(0)
 
 
 def main():
     try:
         with open(MAIN_CONF, 'r') as fh:
-            conf.update(json.load(fh))
+            conf.update(json_load(fh))
     except Exception as e:
         tlog.write('Error reading file %s: %s' % (MAIN_CONF, e))
-        sys.exit(1)
+        sys_exit(1)
 
     if not check_main_conf(conf):
-        sys.exit(1)
+        sys_exit(1)
 
     if args.verbose:
         print banner
@@ -384,7 +390,7 @@ def main():
         main_loop(conf, mark, repo_handler, module_name)
     except KeyboardInterrupt:
         tlog.write('Finishing...')
-        time.sleep(2)
+        sleep(2)
         finish(mark)
 
 if __name__ == "__main__":
