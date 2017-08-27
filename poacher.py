@@ -15,7 +15,6 @@ from getpass import getpass
 
 from git import Repo
 from git import GitCommandError
-from optparse import OptionParser
 from github import Github
 
 banner = """
@@ -37,23 +36,28 @@ args = parser.parse_args()
 
 MAIN_CONF = 'conf/poacher.json'
 
-CONF_SKIP_EMPTY = "skip_empty_repos"
-CONF_MAX_SIZE   = "max_repo_size_kb"
-CONF_CLONE      = "clone"
-CONF_MONITOR    = "monitor_only"
-CONF_POLL_DELAY = "poll_delay_seconds"
-CONF_UNAME      = "github_username"
-CONF_PWD        = "github_password"
-CONF_HANDLER    = "repo_handler"
-CONF_WORKDIR    = "working_directory"
-CONF_ARCHDIR    = "archive_directory"
+CONF_SKIP_EMPTY  = "skip_empty_repos"
+CONF_MAX_SIZE    = "max_repo_size_kb"
+CONF_CLONE       = "clone"
+CONF_MONITOR     = "monitor_only"
+CONF_POLL_DELAY  = "poll_delay_seconds"
+CONF_UNAME       = "github_username"
+CONF_PWD         = "github_password"
+CONF_HANDLER     = "repo_handler"
+CONF_WORKDIR     = "working_directory"
+CONF_ARCHDIR     = "archive_directory"
+CONF_RETRIES     = "github_retries"
+CONF_RETRY_DELAY = "github_retry_delay_seconds"
 
 conf = {
-    CONF_SKIP_EMPTY : True,
-    CONF_MAX_SIZE   : 20000,
-    CONF_CLONE      : False,
-    CONF_MONITOR    : True,
-    CONF_POLL_DELAY : 0.0
+    CONF_SKIP_EMPTY  : True,
+    CONF_MAX_SIZE    : 20000,
+    CONF_CLONE       : False,
+    CONF_MONITOR     : True,
+    CONF_POLL_DELAY  : 0.0,
+    CONF_RETRIES     : 10.0,
+    CONF_RETRY_DELAY : 2.0
+    
 }
 
 DEFAULT_STEP =          16
@@ -120,11 +124,26 @@ def import_user_handler(conf):
 def authenticate(conf):
     return Github(conf[CONF_UNAME], conf[CONF_PWD])
 
-def get_new(githubObj, last):
+def get_new(conf, githubObj, last):
     ret = []
+    retries = 0
 
-    for repo in githubObj.get_repos(since=last):
-            ret.append(repo)
+    while True:
+        try:
+            for repo in githubObj.get_repos(since=last):
+                ret.append(repo)
+        except Exception as e:
+            tlog.write("Error getting new repos from Github: " + str(e))
+            
+            if conf[CONF_RETRIES] > 0:
+                if retries >= (conf[CONF_RETRIES] - 1):
+                    raise e
+            
+                retries += 1
+
+            sleep(conf[CONF_RETRY_DELAY])
+        else:
+            break
 
     return ret
 
@@ -303,12 +322,7 @@ def main_loop(conf, mark, repo_handler, module_name):
 
     while True:
         sleep(conf[CONF_POLL_DELAY])
-
-        try:
-            new = get_new(G, newest)
-        except Exception as e:
-            tlog.write("Error getting new repos from Github: " + str(e))
-            sys_exit(1)
+        new = get_new(conf, G, newest)
 
         numnew = len(new)
         if numnew == 0:

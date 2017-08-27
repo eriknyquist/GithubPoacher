@@ -230,6 +230,20 @@ A description of configurable parameters in ``conf/poacher.json`` follows
 
 |
 
+  | **Name**: ``github_retries``
+  | **Type**: integer
+  | **Description**: number of times to retry a failed Github request before
+  | quitting poacher (0 means never stop retrying)
+
+|
+
+  | **Name**: ``github_retry_delay_seconds``
+  | **Type**: float
+  | **Description**: time (in seconds) to sleep between retrying failed Github
+  | requests
+
+|
+
   | **Name**: ``clone``
   | **Type**: bool
   | **Description**: if true, each new repository will be cloned, and the path

@@ -4,6 +4,9 @@
     "skip_empty_repos": false,
     "max_repo_size_kb": 20000,
     "clone": true,
+    "github_retries": 10,
+    "github_retry_delay_seconds": 5.0,
+    "poll_delay_seconds": 10.0,
     "monitor_only": true,
 
     "repo_handler": "examples/example_handler.py",
