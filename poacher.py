@@ -5,6 +5,8 @@ import shutil
 import json
 import time
 import argparse
+import getpass
+
 from git import Repo
 from git import GitCommandError
 from optparse import OptionParser
@@ -28,27 +30,59 @@ parser.add_argument('-v', '--verbose', action='store_true', dest='verbose')
 args = parser.parse_args()
 
 MAIN_CONF = 'conf/poacher.json'
+
+CONF_SKIP_EMPTY = "skip_empty_repos"
+CONF_MAX_SIZE   = "max_repo_size_kb"
+CONF_CLONE      = "clone"
+CONF_MONITOR    = "monitor_only"
+CONF_POLL_DELAY = "poll_delay_seconds"
+CONF_UNAME      = "github_username"
+CONF_PWD        = "github_password"
+CONF_HANDLER    = "repo_handler"
+CONF_WORKDIR    = "working_directory"
+CONF_ARCHDIR    = "archive_directory"
+
 conf = {
-    'skip_empty_repos' : True,
-    'max_repo_size_kb' : 20000,
-    'clone'            : False,
-    'monitor_only'     : True,
+    CONF_SKIP_EMPTY : True,
+    CONF_MAX_SIZE   : 20000,
+    CONF_CLONE      : False,
+    CONF_MONITOR    : True,
+    CONF_POLL_DELAY : 0.0
 }
 
 DEFAULT_STEP =          16
 UPPER_INIT =            64
 
 CONF_REQUIRED = [
-    'archive_directory', 'working_directory', 'github_username',
-    'github_password'
+    CONF_ARCHDIR, CONF_WORKDIR
 ]
+
+def get_conf_from_user(conf, conf_item, prompt, echo=True):
+    ret = False
+    if conf_item not in conf or conf[conf_item].strip() == "":
+        ret = True
+        while conf[conf_item].strip() == "":
+            if echo:
+                conf[conf_item] = raw_input(prompt.encode())
+            else:
+                conf[conf_item] = getpass.getpass(prompt.encode())
+
+    return ret
 
 def check_main_conf(conf):
     ret = True
     for item in CONF_REQUIRED:
-        if item not in conf or conf[item].strip() == '':
-            tlog.log('Error: please set %s in file %s' % (item, MAIN_CONF))
+        if item not in conf or conf[item].strip() == "":
+            tlog.write('Error: please set %s in file %s' % (item, MAIN_CONF))
             ret = False
+
+    not_in_conf = get_conf_from_user(conf, CONF_UNAME, "Github username: ")
+    if not_in_conf:
+        msg = "Github password: "
+    else:
+        msg = "Github password for %s: " % (conf[CONF_UNAME])
+
+    get_conf_from_user(conf, CONF_PWD, msg, echo=False)
 
     return ret
 
@@ -57,45 +91,28 @@ def parse_user_handler(abspath):
     return mod_dir, os.path.splitext(mod)[0]
 
 def import_user_handler(conf):
-    if conf['monitor_only']:
-        conf['clone'] = False
+    if conf[CONF_MONITOR]:
+        conf[CONF_CLONE] = False
         return None, None
 
     # Import handler module from main conf, if defined...
     repo_handler = None
     module_name = None
 
-    if 'repo_handler' in conf and conf['repo_handler'] != "":
-        module_dir, module_name = parse_user_handler(conf['repo_handler'])
-        repo_handler_logger = lambda msg: tlog.log(msg, desc=module_name)
+    module_dir, module_name = parse_user_handler(conf[CONF_HANDLER])
+    repo_handler_logger = lambda msg: tlog.log(msg, desc=module_name)
 
-        sys.path.append(module_dir)
+    sys.path.append(module_dir)
 
-        try:
-            repo_handler = __import__(module_name)
-        except Exception as e:
-            tlog.log("Error importing handler %s: %s" % (module_name, e))
+    try:
+        repo_handler = __import__(module_name)
+    except Exception as e:
+        tlog.write("Error importing handler %s: %s" % (module_name, e))
 
     return module_name, repo_handler
 
-try:
-    with open(MAIN_CONF, 'r') as fh:
-        conf.update(json.load(fh))
-except Exception as e:
-    tlog.log('Error reading file %s: %s' % (MAIN_CONF, e))
-    sys.exit(1)
-
-if not check_main_conf(conf):
-    sys.exit(1)
-
-if args.verbose:
-    print banner
-
-module_name, repo_handler = import_user_handler(conf)
-marker = marker.Marker()
-
-def authenticate():
-    return Github(conf['github_username'], conf['github_password'])
+def authenticate(conf):
+    return Github(conf[CONF_UNAME], conf[CONF_PWD])
 
 def get_new(githubObj, last):
     ret = []
@@ -168,10 +185,10 @@ def del_rw(action, name, exc):
                      (desc, name))
 
 def archive(archive_dir, repo, handler_logs):
-    if not os.path.isdir(conf['archive_directory']):
-        os.mkdir(conf['archive_directory'])
+    if not os.path.isdir(conf[CONF_ARCHDIR]):
+        os.mkdir(conf[CONF_ARCHDIR])
 
-    path = os.path.join(conf['archive_directory'],
+    path = os.path.join(conf[CONF_ARCHDIR],
         os.path.basename(archive_dir) +  '_' + str(repo.id))
 
     os.mkdir(path)
@@ -188,13 +205,13 @@ def archive(archive_dir, repo, handler_logs):
     try:
         shutil.copytree(archive_dir, path + '/' + os.path.basename(archive_dir))
     except:
-        tlog.log(("Failed to copy repo files while archiving: leaving "
-                 "in %s") % conf['working_directory'])
+        tlog.write(("Failed to copy repo files while archiving: leaving "
+                 "in %s") % conf[CONF_WORKDIR])
         return
 
     shutil.rmtree(archive_dir, onerror=del_rw)
 
-def run_handler(current, repo, handler_log):
+def run_handler(current, repo, repo_handler, handler_log):
     max_retries = 2
     retries = 0
 
@@ -202,13 +219,13 @@ def run_handler(current, repo, handler_log):
         try:
             ret = repo_handler.run(current, repo, handler_log)
         except Exception as e:
-            tlog.log("Error in handler: %s" % e)
+            tlog.write("Error in handler: %s" % e)
             retries = retries + 1
             time.sleep(1)
         else:
             return ret
 
-    tlog.log("Max. retries reach. Unable to process repo " + repo.full_name)
+    tlog.write("Max. retries reach. Unable to process repo " + repo.full_name)
     return False
 
 def get_repo_size(repo):
@@ -228,14 +245,14 @@ def get_repo_size(repo):
     return size, mbsize
 
 def clone_repo(repo, size, mbsize, conf):
-    if not conf['clone']:
+    if not conf[CONF_CLONE]:
         return None
 
-    if size > conf['max_repo_size_kb']:
+    if size > conf[CONF_MAX_SIZE]:
         tlog.log('%.2fMB: Repo is too big, will not clone' % mbsize)
         return None
 
-    current = conf['working_directory'] + '/' + repo.name
+    current = conf[CONF_WORKDIR] + '/' + repo.name
     clone_path = current.decode()
 
     tlog.log('Cloning %s' % repo.name)
@@ -249,47 +266,56 @@ def clone_repo(repo, size, mbsize, conf):
     time.sleep(0.1)
     return clone_path
 
-def main_loop():
+def main_loop(conf, mark, repo_handler, module_name):
     tlog.init(args.verbose)
-    G = authenticate()
+    G = authenticate(conf)
 
     if repo_handler != None:
         tlog.log('Using handler %s' % module_name)
 
     guess = 0
-    if marker.averages_sum > 0 and marker.numsessions > 0:
-        guess = predict_growth(marker.timestamp, marker.averages_sum,
-                marker.numsessions)
+    if mark.averages_sum > 0 and mark.numsessions > 0:
+        guess = predict_growth(mark.timestamp, mark.averages_sum,
+                mark.numsessions)
 
-    newest = bsearch(G, marker.repo_id, guess)
-    marker.current_id = newest
-    marker.starting_id = newest
-    marker.starttime = time.time()
+    if mark.numsessions > 0:
+        tlog.log("last session ended at %s, latest repo ID was %d"
+            % (tlog.timestamp(time=int(mark.timestamp)), mark.repo_id))
+        tlog.log("at %d repos per minute, predicted current latest repo ID is "
+            "at least %d" % (mark.averages_sum / mark.numsessions,
+            mark.repo_id + guess))
+
+    newest = bsearch(G, mark.repo_id, guess)
+    mark.current_id = newest
+    mark.starting_id = newest
+    mark.starttime = time.time()
 
     tlog.log('Latest repo ID is %d' % newest)
 
-    if not os.path.isdir(conf['working_directory']):
-        os.mkdir(conf['working_directory'])
+    if not os.path.isdir(conf[CONF_WORKDIR]):
+        os.mkdir(conf[CONF_WORKDIR])
 
     while True:
+        time.sleep(conf[CONF_POLL_DELAY])
+
         try:
             new = get_new(G, newest)
         except Exception as e:
-            tlog.log(str(e))
+            tlog.write("Error getting new repos from Github: " + str(e))
             sys.exit(1)
 
         numnew = len(new)
         if numnew == 0:
             continue
 
-        newest = marker.newest_id = new[-1].id
-        marker.numrepos += numnew
-        marker.current_timestamp = time.time()
+        newest = mark.newest_id = new[-1].id
+        mark.numrepos += numnew
+        mark.current_timestamp = time.time()
 
         for repo in new:
-            marker.current_id = repo.id
+            mark.current_id = repo.id
 
-            if float(repo.size) == 0.0000 and conf['skip_empty_repos']:
+            if float(repo.size) == 0.0000 and conf[CONF_SKIP_EMPTY]:
                 continue
 
             size, mbsize = get_repo_size(repo)
@@ -305,26 +331,27 @@ def main_loop():
                 handler_logs.append(msg)
                 tlog.log(msg, desc=module_name)
 
-            if run_handler(clone_path, repo, handler_log) and conf["clone"]:
+            if (run_handler(clone_path, repo, repo_handler, handler_log)
+                    and conf[CONF_CLONE]):
                 archive(clone_path, repo, handler_logs)
-            elif conf["clone"] and clone_path != None:
+            elif conf[CONF_CLONE] and clone_path != None:
                 shutil.rmtree(clone_path, onerror=del_rw)
 
 def get_avg_per_min(delta, num):
     per_sec = float(num) / float(delta)
     return int(per_sec * 60)
 
-def finish():
-    npub = marker.numrepos
-    nall = marker.newest_id - marker.starting_id
+def finish(mark):
+    npub = mark.numrepos
+    nall = mark.newest_id - mark.starting_id
 
-    delta = marker.current_timestamp - marker.starttime
+    delta = mark.current_timestamp - mark.starttime
     deltastr = tlog.secs_to_walltime(delta, compact=False)
 
     avg = get_avg_per_min(delta, nall)
-    marker.save(avg)
+    mark.save(avg)
 
-    r_avg = float(marker.averages_sum + avg) / float(marker.numsessions + 1)
+    r_avg = float(mark.averages_sum + avg) / float(mark.numsessions + 1)
     tlog.log('%d new repos (%d public) in %s.' % (nall, npub, deltastr))
     tlog.log('Session average: %d new repos per minute' % avg)
     tlog.log('Running average: %d new repos per minute.' % r_avg)
@@ -332,17 +359,33 @@ def finish():
 
 
 def main():
-    if ('repo_handler' not in conf or conf['repo_handler'] == ""
+    try:
+        with open(MAIN_CONF, 'r') as fh:
+            conf.update(json.load(fh))
+    except Exception as e:
+        tlog.write('Error reading file %s: %s' % (MAIN_CONF, e))
+        sys.exit(1)
+
+    if not check_main_conf(conf):
+        sys.exit(1)
+
+    if args.verbose:
+        print banner
+
+    module_name, repo_handler = import_user_handler(conf)
+    mark = marker.Marker()
+
+    if (CONF_HANDLER not in conf or conf[CONF_HANDLER] == ""
             or repo_handler == None):
-        tlog.log("Monitor Mode (no active handler. keeping track of repository "
+        tlog.write("Monitor Mode (no active handler. keeping track of repository "
                  "creation rate, nothing more)")
 
     try:
-        main_loop()
+        main_loop(conf, mark, repo_handler, module_name)
     except KeyboardInterrupt:
         tlog.write('Finishing...')
         time.sleep(2)
-        finish()
+        finish(mark)
 
 if __name__ == "__main__":
     main()

@@ -9,8 +9,13 @@ TS_TEMPLATE =         "%m-%d-%Y %H:%M:%S.%f"
 start =               time.time()
 verbose =             True
 
-def timestamp():
-    return datetime.datetime.now().strftime(TS_TEMPLATE)[:-3]
+def timestamp(time=None):
+    if time == None:
+        timeval = datetime.datetime.now()
+    else:
+        timeval = datetime.datetime.fromtimestamp(time)
+
+    return timeval.strftime(TS_TEMPLATE)[:-3]
 
 def init(arg_verbose):
     global verbose

@@ -81,34 +81,10 @@ Once you have installed the 4 items above, you can clone Poacher and test it.
 
 ::
 
-   git clone https://github.com/eriknyquist/poacher
-   cd poacher
+   git clone https://github.com/eriknyquist/GithubPoacher
+   cd GithubPoacher
 
-Open the file ``conf/poacher.json`` in a text editor. It should look something
-like this:
-
-::
-
-    {
-        "working_directory": "work", 
-        "archive_directory": "archive",
-        "skip_empty_repos": true,
-        "max_repo_size_kb": 20000,
-        "clone": true,
-        "monitor_only": true,
-
-        "repo_handler": "examples/example_handler.py",
-        "github_username": "", 
-        "github_password": ""
-    }
-
-Set ``github_username`` and ``github_password`` to your Github
-username/password. Save the file and close it.
-
-|
-
-Now, it's a good idea to run poacher with the example handler, to make sure
-everything is working:
+Now, you can run poacher by executing the ``poacher.py`` script:
 
 ::
 
@@ -150,7 +126,10 @@ You need to do 3 simple things to use your own handler with poacher:
        def run(repo_path, repo, log):
            #
            # repo_path : absolute path to clone of the current repository
-           #             on your system
+           #             on your system. If you poacher is in monitor mode,
+           #             or the repository is not cloned because it is too big,
+           #             or if "clone" is set to true in the configuration file,
+           #             this will be set to None.
            #
            # repo      : the Repository object provided by PyGithub. See
            #             http://pygithub.readthedocs.io/en/latest/github_objects/Repository.html
@@ -161,7 +140,11 @@ You need to do 3 simple things to use your own handler with poacher:
            # return    : bool. If True, the clone of this repository will be copied
            #             to your archive directory before continuing.
 
-           log("Latest repository %s is currently cloned at %s" % (repo.full_name, repo_path))
+           log("latest repository: %s" % repo.full_name)
+
+           if repo_path != None:
+               log("cloned at %s" % repo_path)
+
            return True
 
    An example handler ``examples/example_handler.py`` is provided, in case
@@ -240,6 +223,13 @@ A description of configurable parameters in ``conf/poacher.json`` follows
 
 |
 
+  | **Name**: ``poll_delay_seconds``
+  | **Type**: float
+  | **Description**: time (in seconds) to sleep between Github requests while
+  | polling for new repositories
+
+|
+
   | **Name**: ``clone``
   | **Type**: bool
   | **Description**: if true, each new repository will be cloned, and the path
@@ -261,11 +251,13 @@ A description of configurable parameters in ``conf/poacher.json`` follows
   | **Name**: ``github_username``
   | **Type**: string
   | **Description**: username for the Github account that will be used for
-  | authentication
+  | authentication. If not set, you will be prompted to type a username at the
+  | terminal when poacher starts
 
 |
 
   | **Name**: ``github_password``
   | **Type**: string
   | **Description**: password for the Github account that will be used for
-  | authentication
+  | authentication. If not set, you will be prompted to type a password at the
+  | terminal when poacher starts
