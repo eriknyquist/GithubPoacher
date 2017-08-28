@@ -86,10 +86,34 @@ Once you have installed the 4 items above, you can clone Poacher and test it.
 
 Now, you can run poacher by executing the ``poacher.py`` script:
 
-::
+ .. code-block::
 
     $> python poacher.py -v
 
+                                   ./+syddmmmmdhys+:.
+                               -odNMMMMMMMMMMMMMMMMMMNh+.
+                            -sNMMMMMMMMMMMMMMMMMMMMMMMMMMmo`
+                          :dMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMy.
+                        -dMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMs`
+                       +MMMMMMd..:ohMMMMMMMMMMMMMMMNy+-.-NMMMMMN:
+                      yMMMMMMM/     `::-.`    `.-/-      yMMMMMMM+
+                     sMMMMMMMM/                          yMMMMMMMM/
+                    /MMMMMMMMM+                          yMMMMMMMMN.
+                    mMMMMMMMM:                            sMMMMMMMMs
+                   -MMMMMMMMs                              dMMMMMMMN
+                   +MMMMMMMM:                              sMMMMMMMM-
+                   oMMMMMMMM/                              yMMMMMMMM:
+                   /MMMMMMMMy                              NMMMMMMMM.
+                   .MMMMMMMMM:                            oMMMMMMMMm
+                    yMMMMMMMMN/                         `sMMMMMMMMM/
+                    .NMMMMMMMMMm+.                    :sNMMMMMMMMMh
+                     -NMMM+.-sNMMMNhs+/`        .+oydNMMMMMMMMMMMm`
+                      -mMMMN+ .hMMMMMM:          sMMMMMMMMMMMMMMh`
+                       `yMMMMo  -osso/           `MMMMMMMMMMMMMo
+                         :dMMMd:`                `MMMMMMMMMMMh.
+                           :hMMMMNNNNh           `MMMMMMMMNy-
+                             .+dMMMMMd           `MMMMMNh/`
+                                `:ohms            hmyo-
     ::::::::::.     ...       :::.       .,-:::::    ::   .:  .,::::::  :::::::..
      `;;;```.;;; .;;;;;;;.    ;;`;;    ,;;;'````'   ,;;   ;;, ;;;;''''  ;;;;``;;;;
       `]]nnn]]' ,[[     \[[, ,[[ '[[,  [[[         ,[[[,,,[[[  [[cccc    [[[,/[[['
@@ -97,17 +121,20 @@ Now, you can run poacher by executing the ``poacher.py`` script:
        888o     '888,_ _,88P 888   888,`88bo,__,o,  888   '88o 888oo,__  888b '88bo,
        YMMMb      'YMMMMMP'  YMM   ''`   'YUMMMMMP' MMM    YMM '''YUMMM MMMM   'W'
 
-    [08-20-2017 16:46:02.516] [0:00:00] poacher:> Marker file conf/marker.json doesn't exist, using defaults
-    [08-20-2017 16:46:02.516] [0:00:00] poacher:> Monitor Mode (no active handler)
-    [08-20-2017 16:46:02.516] [0:00:00] poacher:> Starting binary search for latest repo ID, last ID was 99525181
-    [08-20-2017 16:46:02.516] [0:00:00] poacher:> trying ID 99525181
-    [08-20-2017 16:46:03.524] [0:00:01] poacher:> trying ID 99525197
-    [08-20-2017 16:46:04.301] [0:00:01] poacher:> trying ID 99525229
-    [08-20-2017 16:46:05.333] [0:00:02] poacher:> trying ID 99525293
-    [08-20-2017 16:46:06.327] [0:00:03] poacher:> trying ID 99525421
-    [08-20-2017 16:46:07.330] [0:00:04] poacher:> trying ID 99525677
-    [08-20-2017 16:46:08.173] [0:00:05] poacher:> trying ID 99526189
-    [08-20-2017 16:46:09.200] [0:00:06] poacher:> trying ID 99527213
+    [08-27-2017 19:44:53.862] [0:00:10] poacher:> Monitor Mode (no active handler. keeping track of repository creation rate, nothing more)
+    [08-27-2017 19:44:53.864] [0:00:10] poacher:> last session ended at 08-27-2017 19:44:07.000, latest repo ID was 101597215
+    [08-27-2017 19:44:53.864] [0:00:10] poacher:> at 78 repos per minute, predicted current latest repo ID is at least 101597274
+    [08-27-2017 19:44:53.865] [0:00:10] poacher:> Starting binary search for latest repo ID, last ID was 101597215
+    [08-27-2017 19:44:53.865] [0:00:10] poacher:> trying ID 101597274
+    [08-27-2017 19:44:54.189] [0:00:11] poacher:> ID 101597274 not yet used
+    [08-27-2017 19:44:54.190] [0:00:11] poacher:> Beginning search between 101597215 and 101597274
+    [08-27-2017 19:44:54.191] [0:00:11] poacher:> search area size: 59
+    [08-27-2017 19:44:54.665] [0:00:11] poacher:> search area size: 30
+    [08-27-2017 19:44:58.430] [0:00:15] poacher:> search area size: 15
+    [08-27-2017 19:44:58.805] [0:00:15] poacher:> search area size: 8
+    [08-27-2017 19:44:59.435] [0:00:16] poacher:> search area size: 4
+    [08-27-2017 19:45:00.077] [0:00:17] poacher:> search area size: 2
+    [08-27-2017 19:45:00.568] [0:00:17] poacher:> Latest repo ID is 101597269
     ...
 
 If you see poacher start to search for the latest repository ID, like in the
@@ -126,10 +153,10 @@ You need to do 3 simple things to use your own handler with poacher:
        def run(repo_path, repo, log):
            #
            # repo_path : absolute path to clone of the current repository
-           #             on your system. If you poacher is in monitor mode,
-           #             or the repository is not cloned because it is too big,
-           #             or if "clone" is set to true in the configuration file,
-           #             this will be set to None.
+           #             on your system. If the repository is not cloned for any
+           #             reason (running in monitor mode, repository is too big
+           #             to clone, "clone" set to false in the configuration
+           #             file), then repo_path will be set to None.
            #
            # repo      : the Repository object provided by PyGithub. See
            #             http://pygithub.readthedocs.io/en/latest/github_objects/Repository.html

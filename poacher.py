@@ -18,6 +18,30 @@ from git import GitCommandError
 from github import Github
 
 banner = """
+                               ./+syddmmmmdhys+:.
+                           -odNMMMMMMMMMMMMMMMMMMNh+.
+                        -sNMMMMMMMMMMMMMMMMMMMMMMMMMMmo`
+                      :dMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMy.
+                    -dMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMs`
+                   +MMMMMMd..:ohMMMMMMMMMMMMMMMNy+-.-NMMMMMN:
+                  yMMMMMMM/     `::-.`    `.-/-      yMMMMMMM+
+                 sMMMMMMMM/                          yMMMMMMMM/
+                /MMMMMMMMM+                          yMMMMMMMMN.
+                mMMMMMMMM:                            sMMMMMMMMs
+               -MMMMMMMMs                              dMMMMMMMN
+               +MMMMMMMM:                              sMMMMMMMM-
+               oMMMMMMMM/                              yMMMMMMMM:
+               /MMMMMMMMy                              NMMMMMMMM.
+               .MMMMMMMMM:                            oMMMMMMMMm
+                yMMMMMMMMN/                         `sMMMMMMMMM/
+                .NMMMMMMMMMm+.                    :sNMMMMMMMMMh
+                 -NMMM+.-sNMMMNhs+/`        .+oydNMMMMMMMMMMMm`
+                  -mMMMN+ .hMMMMMM:          sMMMMMMMMMMMMMMh`
+                   `yMMMMo  -osso/           `MMMMMMMMMMMMMo
+                     :dMMMd:`                `MMMMMMMMMMMh.
+                       :hMMMMNNNNh           `MMMMMMMMNy-
+                         .+dMMMMMd           `MMMMMNh/`
+                            `:ohms            hmyo-
 ::::::::::.     ...       :::.       .,-:::::    ::   .:  .,::::::  :::::::..
  `;;;```.;;; .;;;;;;;.    ;;`;;    ,;;;'````'   ,;;   ;;, ;;;;''''  ;;;;``;;;;
   `]]nnn]]' ,[[     \[[, ,[[ '[[,  [[[         ,[[[,,,[[[  [[cccc    [[[,/[[['
@@ -31,7 +55,10 @@ import marker
 import tlog
 
 parser = ArgumentParser()
-parser.add_argument('-v', '--verbose', action='store_true', dest='verbose')
+parser.add_argument('-v', '--verbose', action='store_true', dest='verbose',
+    help='print debugging messages to stdout, so you can see what poacher is'
+         'doing')
+
 args = parser.parse_args()
 
 MAIN_CONF = 'conf/poacher.json'
@@ -57,7 +84,7 @@ conf = {
     CONF_POLL_DELAY  : 0.0,
     CONF_RETRIES     : 10.0,
     CONF_RETRY_DELAY : 2.0
-    
+
 }
 
 DEFAULT_STEP =          16
@@ -67,22 +94,23 @@ CONF_REQUIRED = [
     CONF_ARCHDIR, CONF_WORKDIR
 ]
 
+def conf_item_is_set(conf, item):
+    return item in conf and conf[item].strip() != ""
+
 def get_conf_from_user(conf, conf_item, prompt, echo=True):
     ret = False
-    if conf_item not in conf or conf[conf_item].strip() == "":
+
+    while not conf_item_is_set(conf, conf_item):
         ret = True
-        while conf[conf_item].strip() == "":
-            if echo:
-                conf[conf_item] = raw_input(prompt.encode())
-            else:
-                conf[conf_item] = getpass(prompt.encode())
+        func = raw_input if echo else getpass
+        conf[conf_item] = func(prompt.encode())
 
     return ret
 
 def check_main_conf(conf):
     ret = True
     for item in CONF_REQUIRED:
-        if item not in conf or conf[item].strip() == "":
+        if not conf_item_is_set(conf, item):
             tlog.write('Error: please set %s in file %s' % (item, MAIN_CONF))
             ret = False
 
@@ -110,8 +138,6 @@ def import_user_handler(conf):
     module_name = None
 
     module_dir, module_name = parse_user_handler(conf[CONF_HANDLER])
-    repo_handler_logger = lambda msg: tlog.log(msg, desc=module_name)
-
     sys_path.append(module_dir)
 
     try:
@@ -121,8 +147,24 @@ def import_user_handler(conf):
 
     return module_name, repo_handler
 
+def test_github_connection(G):
+    try:
+        G.get_rate_limit()
+    except Exception as e:
+        return False, e
+
+    return True, None
+
 def authenticate(conf):
-    return Github(conf[CONF_UNAME], conf[CONF_PWD])
+    G = Github(conf[CONF_UNAME], conf[CONF_PWD])
+
+    # Verify the connection
+    connected, exception = test_github_connection(G)
+    if not connected:
+        tlog.write("Error connecting to Github: %s" % exception)
+        return None
+
+    return G
 
 def get_new(conf, githubObj, last):
     ret = []
@@ -134,11 +176,11 @@ def get_new(conf, githubObj, last):
                 ret.append(repo)
         except Exception as e:
             tlog.write("Error getting new repos from Github: " + str(e))
-            
+
             if conf[CONF_RETRIES] > 0:
                 if retries >= (conf[CONF_RETRIES] - 1):
                     raise e
-            
+
                 retries += 1
 
             sleep(conf[CONF_RETRY_DELAY])
@@ -291,11 +333,11 @@ def clone_repo(repo, size, mbsize, conf):
     sleep(0.1)
     return clone_path
 
-def main_loop(conf, mark, repo_handler, module_name):
-    tlog.init(args.verbose)
-    G = authenticate(conf)
-
-    if repo_handler != None:
+def main_loop(conf, G, mark, repo_handler, module_name):
+    if repo_handler == None:
+        tlog.write("Monitor Mode (no active handler. keeping track of "
+            "repository creation rate, nothing more)")
+    else:
         tlog.log('Using handler %s' % module_name)
 
     guess = 0
@@ -379,6 +421,8 @@ def finish(mark):
 
 
 def main():
+    tlog.init(args.verbose)
+
     try:
         with open(MAIN_CONF, 'r') as fh:
             conf.update(json_load(fh))
@@ -389,19 +433,18 @@ def main():
     if not check_main_conf(conf):
         sys_exit(1)
 
+    G = authenticate(conf)
+    if G == None:
+        exit(1)
+
     if args.verbose:
         print banner
 
     module_name, repo_handler = import_user_handler(conf)
     mark = marker.Marker()
 
-    if (CONF_HANDLER not in conf or conf[CONF_HANDLER] == ""
-            or repo_handler == None):
-        tlog.write("Monitor Mode (no active handler. keeping track of repository "
-                 "creation rate, nothing more)")
-
     try:
-        main_loop(conf, mark, repo_handler, module_name)
+        main_loop(conf, G, mark, repo_handler, module_name)
     except KeyboardInterrupt:
         tlog.write('Finishing...')
         sleep(2)
