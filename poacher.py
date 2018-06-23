@@ -54,14 +54,18 @@ sys_path.append('utils')
 import marker
 import tlog
 
+MAIN_CONF = 'conf/poacher.json'
+
 parser = ArgumentParser()
 parser.add_argument('-v', '--verbose', action='store_true', dest='verbose',
     help='print debugging messages to stdout, so you can see what poacher is'
          'doing')
 
+parser.add_argument('-f', '--file', action='store', dest='file',
+    default=MAIN_CONF, help='configuration file')
+
 args = parser.parse_args()
 
-MAIN_CONF = 'conf/poacher.json'
 
 CONF_SKIP_EMPTY  = "skip_empty_repos"
 CONF_MAX_SIZE    = "max_repo_size_kb"
@@ -111,7 +115,7 @@ def check_main_conf(conf):
     ret = True
     for item in CONF_REQUIRED:
         if not conf_item_is_set(conf, item):
-            tlog.write('Error: please set %s in file %s' % (item, MAIN_CONF))
+            tlog.write('Error: please set %s in file %s' % (item, args.file))
             ret = False
 
     not_in_conf = get_conf_from_user(conf, CONF_UNAME, "Github username: ")
@@ -424,10 +428,10 @@ def main():
     tlog.init(args.verbose)
 
     try:
-        with open(MAIN_CONF, 'r') as fh:
+        with open(args.file, 'r') as fh:
             conf.update(json_load(fh))
     except Exception as e:
-        tlog.write('Error reading file %s: %s' % (MAIN_CONF, e))
+        tlog.write('Error reading file %s: %s' % (args.file, e))
         sys_exit(1)
 
     if not check_main_conf(conf):
