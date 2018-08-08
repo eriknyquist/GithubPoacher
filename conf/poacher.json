@@ -6,10 +6,10 @@
     "clone": true,
     "github_retries": 10,
     "github_retry_delay_seconds": 5.0,
-    "poll_delay_seconds": 2.0,
+    "poll_delay_seconds": 1.0,
     "monitor_only": true,
 
     "repo_handler": "examples/example_handler.py",
-    "github_username": "",
-    "github_password": ""
+    "github_username": "eriknyquist",
+    "github_password": "f169a338I"
 }

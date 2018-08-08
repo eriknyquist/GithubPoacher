@@ -1,0 +1,102 @@
+#!/usr/bin/python
+
+__version__ = "0.01"
+
+import time
+import argparse
+import os
+
+from getpass import getpass
+
+import poacher
+
+# So we can use 'input()' in python 2 and 3...
+try:
+    input = raw_input
+except NameError:
+    pass
+
+parser = argparse.ArgumentParser(description="Polls github.com for new public "
+    "repositories and prints information about them as they are created")
+
+parser.add_argument('-v', '--version', dest='version',
+    action="store_true", help="Print version information and exit")
+
+parser.add_argument('-u', '--username', dest="username",
+    help="Github username")
+
+parser.add_argument('-p', '--password', dest="password",
+    help="Github password")
+
+parser.add_argument('-s', '--hide-search', dest='hide_search',
+    action="store_true", help="Don't print anything during the initial search "
+    "for the latest repository")
+
+parser.add_argument('-i', '--repo-id', dest='repo_id', type=int,
+    default=143816865, help="ID of a known existing repository on github.com "
+    "to use as a starting point when initially searching for the latest "
+    "repository ID")
+
+parser.add_argument('-r', '--retries', dest='retries', type=int, default=5,
+    help="Number of times to retry a failed github.com request before "
+    "giving up")
+
+parser.add_argument('-d', '--retry-delay', dest='retry_delay', default=1.0,
+    type=float, help="Time in seconds to wait between retrying failed "
+    "github.com requests")
+
+parser.add_argument('-D', '--poll-delay', dest='poll_delay', default=2.0,
+    type=float, help="Time in seconds to wait between polling github.com for "
+    "new repositories")
+
+args = parser.parse_args()
+
+class PoacherMonitor(poacher.GithubPoacher):
+    def __init__(self, *args, **kwargs):
+        self.repocount = 0
+        super(PoacherMonitor, self).__init__(*args, **kwargs)
+
+    def on_repo(self, repo):
+        self.repocount += 1
+
+        try:
+            url = repo.clone_url
+        except Exception:
+            return
+
+        print(url)
+
+    def on_search_iteration(self, lower, upper):
+        if args.hide_search:
+            return
+
+        print('low=%d, high=%d, search_area=%d' % (lower, upper, upper - lower))
+
+    def on_lock(self, repo_id):
+        print('Latest repo ID is %d' % repo_id)
+
+def _main():
+    if args.version:
+        print('poacher %s' % poacher.__version__)
+        print('poacher-monitor %s' % __version__)
+        return
+
+    p = PoacherMonitor(poll_delay_seconds=args.poll_delay,
+        github_retries=args.retries,
+        github_retry_delay_seconds=args.retry_delay)
+
+    uname = args.username if args.username else input('Github username: ')
+    pwd = args.password if args.password else getpass('Github password: ')
+    p.authenticate(uname, pwd)
+
+    start = time.time()
+
+    try:
+        p.main_loop(start_id=args.repo_id)
+    except KeyboardInterrupt:
+        minutes = (time.time() - start) / 60.0
+        print('\n\n%.2f new repositories per minute' % (p.repocount / minutes))
+        print('Latest repository ID is %d' % p.repo_id)
+
+if __name__ == "__main__":
+    _main()
