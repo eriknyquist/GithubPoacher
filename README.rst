@@ -59,3 +59,5 @@ Install using pip:
 
 Documentation
 -------------
+
+Full documentation for poacher Python API is here `<https://poacher.readthedocs.io>`_
