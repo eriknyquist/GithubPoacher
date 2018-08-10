@@ -121,6 +121,17 @@ class GithubPoacher(object):
 
         pass
 
+    def on_repos_processed(self, num):
+        """
+        Override this method. This method will be called in each iteration of
+        GithubPoacher.main_loop, after GithubPoacher.on_repo has been called
+        for all new repos returned by a request to github.com
+
+        :param int num: the number of new repositories processed
+        """
+
+        pass
+
     def authenticate(self, username, password):
         """
         Authenticate with Github
@@ -155,5 +166,6 @@ class GithubPoacher(object):
             for repo in new:
                 self.on_repo(repo)
 
+            self.on_repos_processed(len(new))
             self.repo_id = newest = new[-1].id
             time.sleep(self.poll_delay_seconds)
