@@ -37,17 +37,17 @@ parser.add_argument('-i', '--repo-id', dest='repo_id', type=int,
     "to use as a starting point when initially searching for the latest "
     "repository ID")
 
+parser.add_argument('-d', '--poll-delay', dest='poll_delay', default=2.0,
+    type=float, help="Time in seconds to wait between polling github.com for "
+    "new repositories")
+
 parser.add_argument('-r', '--retries', dest='retries', type=int, default=5,
     help="Number of times to retry a failed github.com request before "
     "giving up")
 
-parser.add_argument('-d', '--retry-delay', dest='retry_delay', default=1.0,
+parser.add_argument('-D', '--retry-delay', dest='retry_delay', default=1.0,
     type=float, help="Time in seconds to wait between retrying failed "
     "github.com requests")
-
-parser.add_argument('-D', '--poll-delay', dest='poll_delay', default=2.0,
-    type=float, help="Time in seconds to wait between polling github.com for "
-    "new repositories")
 
 args = parser.parse_args()
 

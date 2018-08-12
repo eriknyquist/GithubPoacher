@@ -1,12 +1,23 @@
-Github Repository Poacher
-=========================
+Poacher
+=======
 
-What is this?
+Poacher polls github.com for newly created repositories, allowing you to obtain
+the URLs (or any other information provided by the Github API) for all new
+public repositories as they are created.
+
+Installation
+------------
+
+Install using pip:
+
+::
+
+    pip install poacher
+
+Documentation
 -------------
 
-This is a module that polls github.com for newly created repositories, allowing
-you to "grab" the URL (or any other information provided by the Github API) for
-all new public repositories as they are created.
+Full documentation for poacher Python API is here `<https://poacher.readthedocs.io>`_
 
 Why?
 ----
@@ -42,22 +53,27 @@ repositories on github.com as they are created. Basic usage looks like this;
 
 ::
 
-    poacher-monitor
+    $> poacher-monitor
 
+    Github username: eriknyquist
+    Github password:
 
-``poacher-monitor`` has several comman-line options. To see a full
-description of all options, run ``poacher-monitor -h``
+    https://github.com/chungbinkley/ch09-builderimage.git
+    https://github.com/zhonghuihuo/JavaCardAppletBasics.git
+    https://github.com/hlp2002/BaiduyunSpider.git
+    https://github.com/Alex-X-W/Misc-Projects.git
+    https://github.com/haimli/javacsv.git
+    https://github.com/NazarMykhailechko/crm_corporate.git
+    https://github.com/DEVHARAM/blockchain.git
+    https://github.com/meitesi/get-docker.git
+    https://github.com/criverso/Resumeportfolio.git
+    https://github.com/macman178/binance-api-node.git
 
-Installation
-------------
-
-Install using pip:
+Or, pass your username and password as arguments instead:
 
 ::
 
-    pip install poacher
+    $> poacher-monitor -u github-username -p github-password
 
-Documentation
--------------
-
-Full documentation for poacher Python API is here `<https://poacher.readthedocs.io>`_
+``poacher-monitor`` has several command-line options. To see a full
+description of all options, run ``poacher-monitor -h``
