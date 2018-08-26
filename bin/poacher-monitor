@@ -53,12 +53,12 @@ args = parser.parse_args()
 
 class PoacherMonitor(poacher.GithubPoacher):
     def __init__(self, *args, **kwargs):
+        self.starttime = None
+        self.updatetime = None
         self.repocount = 0
         super(PoacherMonitor, self).__init__(*args, **kwargs)
 
     def on_repo(self, repo):
-        self.repocount += 1
-
         try:
             url = repo.clone_url
         except Exception:
@@ -73,7 +73,12 @@ class PoacherMonitor(poacher.GithubPoacher):
         print('low=%d, high=%d, search_area=%d' % (lower, upper, upper - lower))
 
     def on_lock(self, repo_id):
+        self.starttime = time.time()
         print('Latest repo ID is %d' % repo_id)
+
+    def on_repos_processed(self, num):
+        self.repocount += num
+        self.updatetime = time.time()
 
 def _main():
     if args.version:
@@ -94,8 +99,16 @@ def _main():
     try:
         p.main_loop(start_id=args.repo_id)
     except KeyboardInterrupt:
-        minutes = (time.time() - start) / 60.0
-        print('\n\n%.2f new repositories per minute' % (p.repocount / minutes))
+        if p.repo_id is None:
+            return
+
+        if p.repocount == 0:
+            rpm = 0.0
+        else:
+            minutes = (time.time() - start) / 60.0
+            rpm = p.repocount / minutes
+
+        print('\n\n%.2f new repositories per minute' % (rpm))
         print('Latest repository ID is %d' % p.repo_id)
 
 if __name__ == "__main__":

@@ -159,6 +159,7 @@ class GithubPoacher(object):
         self.on_lock(newest)
 
         while True:
+            time.sleep(self.poll_delay_seconds)
             new = self._get_new(newest)
             if len(new) == 0:
                 continue
@@ -168,4 +169,3 @@ class GithubPoacher(object):
 
             self.on_repos_processed(len(new))
             self.repo_id = newest = new[-1].id
-            time.sleep(self.poll_delay_seconds)
